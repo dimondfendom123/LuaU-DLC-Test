@@ -1,0 +1,524 @@
+--[[
+    LuaU Drawing Library Benchmark for Roblox Executors v2.0
+    Tests the capabilities of the current environment's Drawing library
+    Features:
+    - Comprehensive object testing
+    - Property validation
+    - Performance benchmarking
+    - Memory leak detection
+    - Visual verification
+    - Detailed reporting
+]]
+
+local function TestDrawingLibrary()
+    -- Configuration
+    local TEST_DURATION = 3 -- Seconds to run performance tests
+    local MEMORY_SAMPLES = 5 -- Number of memory samples to take
+    local SAMPLE_INTERVAL = 0.5 -- Seconds between memory samples
+    
+    -- State tracking
+    local passedTests = 0
+    local totalTests = 0
+    local results = {}
+    local createdObjects = {}
+    local performanceMetrics = {}
+    local memoryUsage = {}
+    local startTime = os.clock()
+    
+    -- Test utilities
+    local function runTest(name, testFunc, isCritical)
+        totalTests = totalTests + 1
+        local success, err = pcall(testFunc)
+        
+        if success then
+            passedTests = passedTests + 1
+            results[name] = {status = "✅ PASSED", details = ""}
+        else
+            results[name] = {status = isCritical and "🛑 CRITICAL FAILURE" or "❌ FAILED", details = tostring(err)}
+            if isCritical then
+                print("Critical test failed! Aborting further tests...")
+                return false
+            end
+        end
+        return true
+    end
+
+    local function cleanup()
+        for _, obj in pairs(createdObjects) do
+            if obj and typeof(obj.Remove) == "function" then
+                pcall(obj.Remove, obj)
+            end
+        end
+        createdObjects = {}
+    end
+
+    local function track(obj)
+        table.insert(createdObjects, obj)
+        return obj
+    end
+
+    -- Memory monitoring
+    local function getMemoryUsage()
+        if typeof(gcinfo) == "function" then
+            return gcinfo()
+        end
+        return collectgarbage("count") / 1024 -- Convert to MB if using Lua 5.2+
+    end
+
+    local function sampleMemory()
+        for i = 1, MEMORY_SAMPLES do
+            memoryUsage[i] = getMemoryUsage()
+            wait(SAMPLE_INTERVAL)
+        end
+    end
+
+    -- Performance testing
+    local function benchmark(name, func, iterations)
+        local start = os.clock()
+        for i = 1, iterations or 1000 do
+            func()
+        end
+        local duration = os.clock() - start
+        performanceMetrics[name] = string.format("%.4f ms", (duration * 1000) / (iterations or 1000))
+        return duration
+    end
+
+    -- Visual verification helper
+    local function createVisualTestArea()
+        local bg = track(Drawing.new("Square"))
+        bg.Position = Vector2.new(50, 50)
+        bg.Size = Vector2.new(300, 300)
+        bg.Color = Color3.fromRGB(30, 30, 40)
+        bg.Filled = true
+        bg.Visible = true
+        bg.ZIndex = -999
+        
+        local title = track(Drawing.new("Text"))
+        title.Text = "Visual Test Area"
+        title.Position = Vector2.new(100, 60)
+        title.Size = 20
+        title.Color = Color3.fromRGB(255, 255, 255)
+        title.Outline = true
+        title.OutlineColor = Color3.fromRGB(0, 0, 0)
+        title.Visible = true
+    end
+
+    --[[
+        TEST SUITES
+    ]]
+    
+    -- Core functionality tests
+    local function runCoreTests()
+        -- Basic Drawing object creation
+        runTest("Library Exists", function()
+            if not Drawing or typeof(Drawing.new) ~= "function" then
+                error("Drawing library not found")
+            end
+        end, true)
+
+        -- Object type validation
+        runTest("Supported Types", function()
+            local supported = {
+                "Line", "Text", "Square", "Circle", 
+                "Triangle", "Quad", "Image", "Polygon"
+            }
+            
+            for _, typeName in pairs(supported) do
+                local success, obj = pcall(Drawing.new, typeName)
+                if success then
+                    obj:Remove()
+                else
+                    error("Type not supported: "..typeName)
+                end
+            end
+        end)
+
+        -- Test each drawing type thoroughly
+        runTest("Line Object Properties", function()
+            local line = track(Drawing.new("Line"))
+            line.Visible = true
+            line.From = Vector2.new(100, 100)
+            line.To = Vector2.new(200, 200)
+            line.Color = Color3.fromRGB(255, 0, 0)
+            line.Thickness = 2
+            line.Transparency = 0.5
+            line.ZIndex = 1
+            
+            -- Verify property assignments
+            assert(line.From == Vector2.new(100, 100), "From property not working")
+            assert(line.To == Vector2.new(200, 200), "To property not working")
+            assert(line.Color == Color3.fromRGB(255, 0, 0), "Color property not working")
+        end)
+
+        runTest("Text Object Properties", function()
+            local text = track(Drawing.new("Text"))
+            text.Visible = true
+            text.Text = "Test Text"
+            text.Position = Vector2.new(150, 150)
+            text.Size = 18
+            text.Color = Color3.fromRGB(0, 255, 0)
+            text.Outline = true
+            text.OutlineColor = Color3.fromRGB(0, 0, 0)
+            text.Transparency = 0.3
+            text.ZIndex = 2
+            text.Font = Drawing.Fonts.UI
+            
+            -- Verify property assignments
+            assert(text.Text == "Test Text", "Text property not working")
+            assert(text.Position == Vector2.new(150, 150), "Position property not working")
+            assert(text.Outline == true, "Outline property not working")
+        end)
+
+        runTest("Circle Object Properties", function()
+            local circle = track(Drawing.new("Circle"))
+            circle.Visible = true
+            circle.Position = Vector2.new(200, 200)
+            circle.Radius = 50
+            circle.Color = Color3.fromRGB(0, 0, 255)
+            circle.Filled = false
+            circle.Thickness = 2
+            circle.NumSides = 32
+            circle.Transparency = 0.8
+            circle.ZIndex = 3
+            
+            -- Verify property assignments
+            assert(circle.Position == Vector2.new(200, 200), "Position property not working")
+            assert(circle.Radius == 50, "Radius property not working")
+            assert(circle.Filled == false, "Filled property not working")
+        end)
+
+        runTest("Square Object Properties", function()
+            local square = track(Drawing.new("Square"))
+            square.Visible = true
+            square.Position = Vector2.new(250, 250)
+            square.Size = Vector2.new(100, 100)
+            square.Color = Color3.fromRGB(255, 255, 0)
+            square.Filled = true
+            square.Thickness = 1
+            square.Transparency = 0.2
+            square.ZIndex = 4
+            square.Rotation = 45
+            
+            -- Verify property assignments
+            assert(square.Size == Vector2.new(100, 100), "Size property not working")
+            assert(square.Filled == true, "Filled property not working")
+            assert(square.Rotation == 45, "Rotation property not working")
+        end)
+        
+        runTest("Image Drawing Support", function()
+            local image = track(Drawing.new("Image"))
+            image.Visible = true
+            image.Position = Vector2.new(300, 100)
+            image.Size = Vector2.new(100, 100)
+            image.Data = "rbxassetid://0" -- Blank image
+            image.Transparency = 0.5
+            image.ZIndex = 5
+            
+            -- Verify basic functionality
+            assert(image.Size == Vector2.new(100, 100), "Image size not working")
+        end)
+    end
+
+    -- Advanced feature tests
+    local function runAdvancedTests()
+        runTest("Font Support", function()
+            local text = track(Drawing.new("Text"))
+            local supportedFonts = {
+                Drawing.Fonts.UI,
+                Drawing.Fonts.System,
+                Drawing.Fonts.Plex,
+                Drawing.Fonts.Monospace
+            }
+            
+            for _, font in pairs(supportedFonts) do
+                text.Font = font
+                if text.Font ~= font then
+                    error("Font not supported: "..tostring(font))
+                end
+            end
+        end)
+
+        runTest("High ZIndex Ordering", function()
+            -- Create overlapping objects with different ZIndex values
+            local low = track(Drawing.new("Square"))
+            low.Position = Vector2.new(350, 150)
+            low.Size = Vector2.new(100, 100)
+            low.Color = Color3.fromRGB(255, 0, 0)
+            low.Filled = true
+            low.ZIndex = 1
+            low.Visible = true
+            
+            local high = track(Drawing.new("Square"))
+            high.Position = Vector2.new(400, 200)
+            high.Size = Vector2.new(100, 100)
+            high.Color = Color3.fromRGB(0, 255, 0)
+            high.Filled = true
+            high.ZIndex = 10
+            high.Visible = true
+            
+            -- Can't actually verify rendering order programmatically, just test property
+            assert(high.ZIndex > low.ZIndex, "ZIndex ordering not working")
+        end)
+
+        runTest("Transparency Gradient", function()
+            local square = track(Drawing.new("Square"))
+            square.Position = Vector2.new(450, 150)
+            square.Size = Vector2.new(100, 100)
+            square.Color = Color3.fromRGB(0, 0, 255)
+            square.Filled = true
+            square.Transparency = 0
+            square.Visible = true
+            
+            -- Animate transparency (visual verification only)
+            for i = 0, 1, 0.1 do
+                square.Transparency = i
+                wait(0.05)
+            end
+            square.Transparency = 0
+        end)
+
+        runTest("Dynamic Property Updates", function()
+            local circle = track(Drawing.new("Circle"))
+            circle.Visible = true
+            circle.Position = Vector2.new(200, 350)
+            circle.Radius = 30
+            circle.Color = Color3.fromRGB(255, 0, 255)
+            circle.Filled = true
+            
+            -- Rapid property changes
+            for i = 1, 20 do
+                circle.Position = Vector2.new(200 + math.sin(i/5) * 50, 350 + math.cos(i/5) * 50)
+                circle.Color = Color3.fromHSV(i/20, 1, 1)
+                wait(0.02)
+            end
+        end)
+    end
+
+    -- Performance tests
+    local function runPerformanceTests()
+        runTest("Object Creation Performance", function()
+            benchmark("Create 1000 Lines", function()
+                local line = Drawing.new("Line")
+                line:Remove()
+            end, 1000)
+        end)
+        
+        runTest("Property Update Performance", function()
+            local line = track(Drawing.new("Line"))
+            benchmark("Update Line Properties 1000x", function()
+                line.From = Vector2.new(math.random(0, 500), math.random(0, 500))
+                line.To = Vector2.new(math.random(0, 500), math.random(0, 500))
+                line.Color = Color3.fromRGB(math.random(0, 255), math.random(0, 255), math.random(0, 255))
+            end, 1000)
+        end)
+        
+        runTest("Rendering Stress Test", function()
+            local start = os.clock()
+            local count = 0
+            local objects = {}
+            
+            while os.clock() - start < TEST_DURATION do
+                local obj = Drawing.new("Square")
+                obj.Position = Vector2.new(math.random(0, 500), math.random(0, 500))
+                obj.Size = Vector2.new(10, 10)
+                obj.Color = Color3.fromRGB(math.random(0, 255), math.random(0, 255), math.random(0, 255))
+                obj.Visible = true
+                table.insert(objects, obj)
+                count = count + 1
+                wait()
+            end
+            
+            -- Cleanup
+            for _, obj in pairs(objects) do
+                obj:Remove()
+            end
+            
+            performanceMetrics["RenderedObjectsPerSecond"] = string.format("%d objects/s", math.floor(count / TEST_DURATION))
+        end)
+    end
+
+    -- Memory tests
+    local function runMemoryTests()
+        runTest("Memory Leak Detection", function()
+            local initialMemory = getMemoryUsage()
+            local objects = {}
+            
+            -- Create and destroy objects
+            for i = 1, 100 do
+                local obj = Drawing.new("Line")
+                obj:Remove()
+                table.insert(objects, obj)
+            end
+            
+            collectgarbage()
+            local finalMemory = getMemoryUsage()
+            
+            if finalMemory > initialMemory * 1.2 then -- 20% tolerance
+                error(string.format("Possible memory leak: %.2fMB -> %.2fMB", initialMemory, finalMemory))
+            end
+        end)
+        
+        runTest("Object Cleanup", function()
+            local obj = Drawing.new("Line")
+            local weakRef = setmetatable({obj}, {__mode = "v"})
+            obj:Remove()
+            obj = nil
+            collectgarbage()
+            
+            if weakRef[1] ~= nil then
+                error("Object not properly garbage collected after Remove()")
+            end
+        end)
+    end
+
+    -- Compatibility tests
+    local function runCompatibilityTests()
+        runTest("Instance.new UI Support", function()
+            if not Instance or typeof(Instance.new) ~= "function" then
+                error("Instance.new not available")
+            end
+            
+            -- Test ScreenGui creation
+            local gui = Instance.new("ScreenGui")
+            if not gui or not gui:IsA("ScreenGui") then
+                error("Failed to create ScreenGui")
+            end
+            
+            -- Test Frame creation
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(0, 100, 0, 100)
+            frame.Position = UDim2.new(0, 100, 0, 100)
+            frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+            
+            -- Test TextLabel creation
+            local label = Instance.new("TextLabel")
+            label.Text = "Test"
+            label.Size = UDim2.new(1, 0, 1, 0)
+            label.TextColor3 = Color3.fromRGB(255, 255, 255)
+            
+            -- Test parenting
+            frame.Parent = gui
+            label.Parent = frame
+            
+            -- Test property changes
+            frame.BackgroundTransparency = 0.5
+            label.TextStrokeTransparency = 0
+            
+            -- Cleanup
+            gui:Destroy()
+        end)
+        
+        runTest("Drawing + UI Integration", function()
+            if not Instance.new then return end
+            
+            local gui = Instance.new("ScreenGui")
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(0, 200, 0, 200)
+            frame.Position = UDim2.new(0, 400, 0, 50)
+            frame.BackgroundTransparency = 1
+            frame.Parent = gui
+            
+            -- Create drawing objects relative to UI
+            local text = track(Drawing.new("Text"))
+            text.Text = "UI Integrated"
+            text.Size = 20
+            text.Color = Color3.fromRGB(255, 255, 255)
+            text.Outline = true
+            text.Visible = true
+            
+            -- Update position based on UI frame
+            local function updatePosition()
+                if frame and frame.AbsolutePosition then
+                    text.Position = frame.AbsolutePosition + Vector2.new(10, 10)
+                end
+            end
+            
+            updatePosition()
+            frame:GetPropertyChangedSignal("AbsolutePosition"):Connect(updatePosition)
+            
+            -- Visual verification only
+            wait(2)
+            gui:Destroy()
+        end)
+    end
+
+    --[[
+        MAIN TEST EXECUTION
+    ]]
+    
+    -- Set up visual test area
+    createVisualTestArea()
+    
+    -- Run test suites
+    runCoreTests()
+    runAdvancedTests()
+    runPerformanceTests()
+    runMemoryTests()
+    runCompatibilityTests()
+    
+    -- Final memory sampling
+    sampleMemory()
+    
+    -- Calculate memory delta
+    local initialMem = memoryUsage[1] or 0
+    local finalMem = memoryUsage[#memoryUsage] or 0
+    local memDelta = finalMem - initialMem
+    
+    -- Cleanup
+    cleanup()
+    
+    --[[
+        RESULTS REPORTING
+    ]]
+    
+    local totalTime = os.clock() - startTime
+    
+    -- Generate detailed report
+    print("\n=== Advanced Drawing Library Test Report ===")
+    print(string.format("⏱ Total Test Time: %.2f seconds", totalTime))
+    print(string.format("📊 Test Results: %d/%d passed (%.1f%%)", 
+        passedTests, totalTests, (passedTests/totalTests)*100))
+    
+    print("\n🔍 Detailed Test Results:")
+    for testName, result in pairs(results) do
+        print(string.format("%-35s %s %s", testName, result.status, result.details))
+    end
+    
+    print("\n⚡ Performance Metrics:")
+    for metric, value in pairs(performanceMetrics) do
+        print(string.format("%-30s %s", metric, value))
+    end
+    
+    print("\n🧠 Memory Analysis:")
+    print(string.format("Initial: %.2fMB | Final: %.2fMB | Delta: %.2fMB", 
+        initialMem, finalMem, memDelta))
+    
+    if math.abs(memDelta) > 1 then
+        print("⚠ Warning: Significant memory change detected")
+    end
+    
+    -- Final compatibility rating
+    local compatibilityRating
+    if passedTests == totalTests then
+        compatibilityRating = "🎉 EXCELLENT - Full compatibility with all advanced features"
+    elseif passedTests >= totalTests * 0.9 then
+        compatibilityRating = "👍 GREAT - Minor missing features"
+    elseif passedTests >= totalTests * 0.7 then
+        compatibilityRating = "⚠ GOOD - Some missing features"
+    elseif passedTests >= totalTests * 0.5 then
+        compatibilityRating = "🔻 FAIR - Limited functionality"
+    else
+        compatibilityRating = "❌ POOR - Basic functionality only"
+    end
+    
+    print("\n🏆 Final Compatibility Rating: "..compatibilityRating)
+    
+    -- Visual verification reminder
+    print("\nNOTE: Some tests require visual verification in the game window")
+end
+
+-- Run the tests with error handling
+local success, err = pcall(TestDrawingLibrary)
+if not success then
+    print("🛑 TEST SCRIPT CRASHED: "..tostring(err))
+end
