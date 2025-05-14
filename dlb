@@ -1,13 +1,6 @@
 --[[
     LuaU Drawing Library Compatibility for Roblox Executors v2.1
-    Tests the capabilities of the current environment's Drawing library
-    Features:
-    - Comprehensive object testing
-    - Property validation
-    - Performance benchmarking
-    - Memory leak detection
-    - Visual verification
-    - Detailed reporting
+    Modified version with adjusted compatibility ratings and test weighting
 ]]
 
 local function TestDrawingLibrary()
@@ -16,9 +9,42 @@ local function TestDrawingLibrary()
     local MEMORY_SAMPLES = 5 -- Number of memory samples to take
     local SAMPLE_INTERVAL = 0.5 -- Seconds between memory samples
     
+    -- Test 
+    local WEIGHTS = {
+        -- Core tests
+        ["Library Exists"] = 5,
+        ["Supported Types"] = 5,
+        ["Line Object Properties"] = 3,
+        ["Text Object Properties"] = 3,
+        ["Circle Object Properties"] = 3,
+        ["Square Object Properties"] = 3,
+        ["Image Drawing Support"] = 2,
+        
+        -- Advanced tests
+        ["Font Support"] = 2,
+        ["High ZIndex Ordering"] = 2,
+        ["Transparency Gradient"] = 3,  -- Slightly higher weight for visual
+        ["Dynamic Property Updates"] = 3, -- Slightly higher weight for visual
+        
+        -- Performance tests
+        ["Object Creation Performance"] = 1,
+        ["Property Update Performance"] = 1,
+        ["Rendering Stress Test"] = 1,
+        
+        -- Memory tests
+        ["Memory Leak Detection"] = 1,
+        ["Object Cleanup"] = 1,
+        
+        -- Compatibility tests (higher weights)
+        ["Instance.new UI Support"] = 8,  -- Much higher weight
+        ["Drawing + UI Integration"] = 6  -- Higher weight
+    }
+    
     -- State tracking
     local passedTests = 0
     local totalTests = 0
+    local weightedScore = 0
+    local maxWeightedScore = 0
     local results = {}
     local createdObjects = {}
     local performanceMetrics = {}
@@ -28,13 +54,21 @@ local function TestDrawingLibrary()
     -- Test utilities
     local function runTest(name, testFunc, isCritical)
         totalTests = totalTests + 1
+        local weight = WEIGHTS[name] or 1
+        maxWeightedScore = maxWeightedScore + weight
+        
         local success, err = pcall(testFunc)
         
         if success then
             passedTests = passedTests + 1
-            results[name] = {status = "✅ PASSED", details = ""}
+            weightedScore = weightedScore + weight
+            results[name] = {status = "✅ PASSED", details = "", weight = weight}
         else
-            results[name] = {status = isCritical and "🛑 CRITICAL FAILURE" or "❌ FAILED", details = tostring(err)}
+            results[name] = {
+                status = isCritical and "🛑 CRITICAL FAILURE" or "❌ FAILED", 
+                details = tostring(err),
+                weight = weight
+            }
             if isCritical then
                 print("Critical test failed! Aborting further tests...")
                 return false
@@ -105,6 +139,7 @@ local function TestDrawingLibrary()
 
     --[[
         TEST SUITES
+        (Test implementations remain the same as original)
     ]]
     
     -- Core functionality tests
@@ -476,12 +511,14 @@ local function TestDrawingLibrary()
     -- Generate detailed report
     print("\n=== Advanced Drawing Library Test Report ===")
     print(string.format("⏱ Total Test Time: %.2f seconds", totalTime))
-    print(string.format("📊 Test Results: %d/%d passed (%.1f%%)", 
+    print(string.format("📊 Test Results: %d/%d passed (%.1f%%) DLC", 
         passedTests, totalTests, (passedTests/totalTests)*100))
+    print(string.format("🏅 Weighted Score:  %.1f/%d (%.1f%%) wDLC",
+        weightedScore, maxWeightedScore, (weightedScore/maxWeightedScore)*100))
     
     print("\n🔍 Detailed Test Results:")
     for testName, result in pairs(results) do
-        print(string.format("%-35s %s %s", testName, result.status, result.details))
+        print(string.format("%-35s %s %s (Weight: %d)", testName, result.status, result.details, result.weight))
     end
     
     print("\n⚡ Performance Metrics:")
@@ -497,51 +534,28 @@ local function TestDrawingLibrary()
         print("⚠ Warning: Significant memory change detected")
     end
     
-    -- Final compatibility rating
-
-    -- Weighted test scoring
-    local weightOverrides = {
-        ["Instance.new UI Support"] = 2.0,
-        ["Drawing + UI Integration"] = 2.0,
-        ["Visual Test Area"] = 1.5,
-        ["Transparency Gradient"] = 1.2,
-        ["Dynamic Property Updates"] = 1.2,
-        ["Memory Leak Detection"] = 0.8,
-        ["Object Cleanup"] = 0.8,
-    }
-
-    local totalWeighted = 0
-    local passedWeighted = 0
-
-    for testName, result in pairs(results) do
-        local weight = weightOverrides[testName] or 1.0
-        totalWeighted = totalWeighted + weight
-        if result.status:find("PASSED") then
-            passedWeighted = passedWeighted + weight
-        end
-    end
-
-    local weightedPercent = (passedWeighted / totalWeighted) * 100
-
-    -- Updated rating logic
+    -- Final compatibility rating (using weighted score)
+    local compatibilityScore = (weightedScore/maxWeightedScore)*100
     local compatibilityRating
-    if weightedPercent >= 99 then
-        compatibilityRating = "🎉 Drawing Library includes all advanced and additional features"
-    elseif weightedPercent >= 90 then
-        compatibilityRating = "👍 Drawing Library includes every necessary function to support the majority of complex UIs"
-    elseif weightedPercent >= 70 then
-        compatibilityRating = "⚠ Drawing library can handle basic UIs, and can handle some complex UIs and/or user interface libraries"
-    elseif weightedPercent >= 50 then
-        compatibilityRating = "🔻 Drawing Library has limited functionality, and can only run the majority of simple UIs and scripts, may not support user interface libraries"
+    
+    if compatibilityScore >= 95 then
+        compatibilityRating = "🎉 Drawing Library Includes all advanced and additional features"
+    elseif compatibilityScore >= 70 then
+        compatibilityRating = "👍 Drawing Library includes every necessary function to support the majority (or all) of complex UI's"
+    elseif compatibilityScore >= 50 then
+        compatibilityRating = "⚠ Drawing library can handle basic UI's, and can handle some complex UI's and/or User Interface libraries"
+    elseif compatibilityScore >= 35 then
+        compatibilityRating = "🔻 Drawing Library has Limited functionality, and can only run the majority of simple UI's and scripts, may not support user interface libraries."
     else
         compatibilityRating = "❌ POOR - Basic functionality only"
     end
-
+    
     print("\n🏆 Final Compatibility Rating: "..compatibilityRating)
-    print(string.format("Weighted Score: %.1f%% DLC", weightedPercent))
-
+    print(string.format("   Weighted Compatibility Score: %.1f%% wDLC", compatibilityScore))
+    
     -- Visual verification reminder
     print("\nNOTE: Some tests require visual verification in the game window")
+end
 
 -- Run the tests with error handling
 local success, err = pcall(TestDrawingLibrary)
