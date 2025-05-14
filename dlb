@@ -1,5 +1,5 @@
 --[[
-    LuaU Drawing Library Benchmark for Roblox Executors v2.0
+    LuaU Drawing Library Compatibility for Roblox Executors v2.1
     Tests the capabilities of the current environment's Drawing library
     Features:
     - Comprehensive object testing
@@ -498,24 +498,50 @@ local function TestDrawingLibrary()
     end
     
     -- Final compatibility rating
+
+    -- Weighted test scoring
+    local weightOverrides = {
+        ["Instance.new UI Support"] = 2.0,
+        ["Drawing + UI Integration"] = 2.0,
+        ["Visual Test Area"] = 1.5,
+        ["Transparency Gradient"] = 1.2,
+        ["Dynamic Property Updates"] = 1.2,
+        ["Memory Leak Detection"] = 0.8,
+        ["Object Cleanup"] = 0.8,
+    }
+
+    local totalWeighted = 0
+    local passedWeighted = 0
+
+    for testName, result in pairs(results) do
+        local weight = weightOverrides[testName] or 1.0
+        totalWeighted = totalWeighted + weight
+        if result.status:find("PASSED") then
+            passedWeighted = passedWeighted + weight
+        end
+    end
+
+    local weightedPercent = (passedWeighted / totalWeighted) * 100
+
+    -- Updated rating logic
     local compatibilityRating
-    if passedTests == totalTests then
-        compatibilityRating = "🎉 EXCELLENT - Full compatibility with all advanced features"
-    elseif passedTests >= totalTests * 0.9 then
-        compatibilityRating = "👍 GREAT - Minor missing features"
-    elseif passedTests >= totalTests * 0.7 then
-        compatibilityRating = "⚠ GOOD - Some missing features"
-    elseif passedTests >= totalTests * 0.5 then
-        compatibilityRating = "🔻 FAIR - Limited functionality"
+    if weightedPercent >= 99 then
+        compatibilityRating = "🎉 Drawing Library includes all advanced and additional features"
+    elseif weightedPercent >= 90 then
+        compatibilityRating = "👍 Drawing Library includes every necessary function to support the majority of complex UIs"
+    elseif weightedPercent >= 70 then
+        compatibilityRating = "⚠ Drawing library can handle basic UIs, and can handle some complex UIs and/or user interface libraries"
+    elseif weightedPercent >= 50 then
+        compatibilityRating = "🔻 Drawing Library has limited functionality, and can only run the majority of simple UIs and scripts, may not support user interface libraries"
     else
         compatibilityRating = "❌ POOR - Basic functionality only"
     end
-    
+
     print("\n🏆 Final Compatibility Rating: "..compatibilityRating)
-    
+    print(string.format("Weighted Score: %.1f%% DLC", weightedPercent))
+
     -- Visual verification reminder
     print("\nNOTE: Some tests require visual verification in the game window")
-end
 
 -- Run the tests with error handling
 local success, err = pcall(TestDrawingLibrary)
